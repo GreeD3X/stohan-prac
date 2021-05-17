@@ -1,0 +1,472 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{vmargin}
+\setpapersize{A4}
+\usepackage{indentfirst}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{pifont}
+\usepackage{titlesec}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\const}{const}
+\DeclareMathOperator{\Argmax}{Argmax}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\re}{Re}
+\clubpenalty=9999
+\widowpenalty=9999
+\sloppy
+
+% Стилизация
+
+%\titleformat{\chapter}[block]
+ % {\normalfont\bfseries\Huge}{\thechapter.}{10pt}{}
+%\titleformat{\section}[block]
+ % {\normalfont\bfseries\Large}{\thesection \:}{10pt}{}
+
+\begin{document}
+% Команды
+
+
+% Титульный лист
+
+\thispagestyle{empty}
+\begin{center}
+\vspace{-3cm}
+\includegraphics[width=0.5\textwidth]{msu}\\
+\begin{small}
+{\scshape Московский государственный университет имени М.~В.~Ломоносова}\\
+Факультет вычислительной математики и кибернетики\\
+Кафедра системного анализа
+\end{small}
+\vfill
+{\Large Отчёт по практикуму}\\
+\vspace{1cm}
+{\LARGE\bfseries <<Численное решение задачи суперхеджирования с помощью уравнения Беллмана-Айзекса>>}
+\end{center}
+\vspace{1cm}
+\begin{flushright}
+
+
+
+\textit{Студент 515 группы}\\
+Г.~А.~Садков\\
+\vspace{5mm}
+\textit{Руководитель практикума}\\
+С.~Н.~Смирнов
+\end{flushright}
+\vfill
+\begin{center}
+Москва, 2020
+\end{center}
+\pagebreak
+
+% Оглавление
+
+\tableofcontents
+\pagebreak
+
+% Постановка задачи
+
+\section{Постановка задачи}
+
+Необходимо численно решить уравнение Беллмана-Айзекса для задачи гарантированного суперхеджирования опциона американского типа с заданной функцией выплатдля $n$ (рисковых) активов при наличии торговых ограничений. Предполагается, что нарынке нет транзакционных издержек.\\
+Задача рассматривается в дискретном времени на конечном горизонте $N$ . Пусть
+$x_t = (x^1_t , . . . , x^n_t ) \in (0, \infty), \, n$ --- вектор (дисконтированных) цен рисковых активов вмомент $t \in [0, N]$. Будем называть предысторией цен (к текущему моменту времени$t = 1, . . . , N $) последовательность $\bar{x}_{t-1} = (x_0 , . . . , x_{t-1} )$. Считается, что безрисковый актив имеет постоянную цену, равную единице, и не подвержен торговым ограничениям. Стратегией хеджера называется последовательность векторов $h_1 , . . . , h_N$, описывающая структуру портфеля рисковых активов, такая что $h_t \in D_t (\bar{x}_{t-1} ) \subseteq \mathbb{R}_n$ при априори заданных торговых ограничениях, задаваемых многозначными отображениями $D_t (·)$. \\
+Неопределённая динамика цен может быть описана в аддитивной форме: $x_t = x_{t-1} + y_t;$ предполагается, что приращение цен $y_t \in K_t (\bar{x}_{t-1} )$, где компактнозначные отображения $K_t (·)$ имеют смысл заданных априори допустимых сценариев измененияцен. От чисто детерминистского описания модели можно перейти к описанию динамики цен посредством смешанных стратегий рынка из класса $P_t (\bar{x}_{t-1} )$ вероятностных
+мер с носителями, содержащимися в $K_t (\bar{x}_{t-1} )$, который содержит все меры, сосредоточенные в одной точке из $K_t (\bar{x}_{t-1} )$ (меры Дирака). Обозначим $P^t_n (\bar{x}_{t-1} )$ — множество вероятностных мер из $P_t (\bar{x}_{t-1} )$, сосредоточенных не более чем в $n + 1$ точке. \\
+Пусть $g_t (\bar{x}_t ), t = 0, . . . , N $, --- функции выплат по американскому опциону. Соответствующая целевая функция $v_t^{\star} (\bar{x}_t ), t = 0, . . . , N$ , --- резервы на (гарантированное)покрытие текущих и будущих обусловленных обязательств по проданному опциону.Считаем, что условия задачи таковы, что функции $v_t^{\star}$ полунепрерывны сверху. Тогда
+имеет место игровое равновесие и уравнения Беллмана-Айзекса, отражающие игровуюинтерпретацию для исходной (детерминистской) задачи, могут быть записаны в виде уравнений Беллмана, где задача ценообразования отделена от задачи хеджирования:
+\begin{equation}\label{bellman}
+	\begin{array}{c}
+		v^{\star}_N(\bar{x}_{t-1}) = g_N(\bar{x}_{t-i}),\\
+		v^{\star}_{t-1} \left( \bar{x}_{t-1} \right) = g_{t-1}(\bar{x}_{t-1}) \bigvee \underset{ Q \in P_i^n (\bar{x}_{t-1} )}{ \sup } \left[ \int v^{\star}_t \left( \bar{x}_{t-1}, x_{t} + y\right) Q(dy) - \sigma _{D_t(\bar{x}_{t-1}) \left( \int y Q(dy)\right) }\right], \\
+		t = 1, \dots, N,		
+	\end{array}
+\end{equation}
+где $\sigma D_t (\bar{x}_{t-1} ) (·)$ – опорная функция множества $D_t (\bar{x}_{t-1})$. Уравнение \ref{bellman} может быть решено для каждого $t$ в два этапа:
+\begin{itemize}
+	\item для фиксированного $z \in K_t (\bar{x}_{t-1} )$ находится функция	$ut (\bar{x}t-1 , z) =
+	sup
+	vt\star (\bar{x}t-1 , xt-1 + y)Q(dy).
+	n
+	Q \in P
+	t (\bar{x}t-1 )
+	!
+	yQ(dy)=z.$
+	\item функция цены находится как
+	$ \star
+	vt-1
+	(\bar{x}t-1 ) = gt-1 (\bar{x}t-1 )
+	sup
+	z\in Kt (\bar{x}t-1 )
+	'
+	ut (\bar{x}t-1 , z) - \sigma Dt (\bar{x}t-1 ) (z) .
+	$
+\end{itemize}
+Функция $z \leftarrow u_t (\bar{x}_{t-1} ,z)$, определённая посредством (2), совпадает с вогнутой оболочкой1 функции $f (y) =
+) v \star (\bar{x} , x + y), y \in K (\bar{x} ),
+t-1
+t-1
+t t-1
+t
+$ в точке $z$. Таким образом,для решения задач требуется находить вогнутую оболочку функции.
+Для описания неопределённой динамики цен модели будем использовать мультипликативную форму, эквивалентную аддитивной. Обозначим
+$(
++
+)xit = mit xit-1 , i = 1, . . . , n,
++
+*mt = (m1 , . . . , mn ) \in Et (·),
+t
+t$
+(4)
+где компактное множество $Et (·)$ задаётся как множество мультипликаторов $m =
+(m1 , . . . , mn )$, таких что точка $y = (y 1 , . . . , y n )$ с координатами $y i = (mi - 1)xit-1 $,
+$i = 1, . . . , n$ принадлежит $Kt (·)$. Цены рисковых активов в каждый момент времени
+$t = 0, . . . , n$ дол<ны быт0 положительными, т.е. $xt = (x1t , . . . , xnt ) \in (0, \infty)n $, что равносильно положительности цен в начальный момент и условию $Et (·) \subseteq (0, \infty)^n$ . При этомначальные цены предполагаются известными и фиксированными.
+Дана система дифференциальных уравнений:
+
+\begin{equation}
+\begin{cases}\label{main:syst}
+\dot u =\frac{a u^2}{N + u} - gu - buv + d_1 u_{x x}\\
+\dot v = - cv + duv + d_2 v_{xx}
+\end{cases}
+\end{equation}
+где $a$. $b$, $c$, $d$, $g$, $N$, $d_1$, $d_2$ --- положительные параметры. Для этой системы требуется:
+
+\begin{enumerate}
+
+\item Сделать замены переменных;
+
+\item Исследовать фазовый портрет нераспределённой системы (неподвижные точки, их тип, изоклины);
+
+\item Проверить наличие волновых решений распределённой системы;
+
+\item Выбрать подходящее решение и скорость волны;
+
+\item Привести иллюстрации и графики фазовых портретов и решений.
+
+\end{enumerate}
+\pagebreak
+
+\section{Замена переменных}
+
+Введём следующую замену переменных:
+\begin{equation*}
+\begin{aligned}
+&\tilde{u} = \alpha u,\\
+&\tilde{v} = \beta v,\\
+&\tilde{t} = \gamma t,\\
+&\tilde{x} = \delta x.
+\end{aligned}
+\end{equation*}
+Тогда система (\ref{main:syst}) примет вид:
+\begin{equation*}
+\begin{cases}
+\frac{\gamma}{\alpha} \tilde{u}_{\tilde{t}} =\frac{a \tilde{u}^2}{\alpha^2 \left(N + \frac{\tilde{u}}{\alpha}\right)} - \frac{g \tilde{u}}{\alpha} - \frac{b \tilde{u} \tilde{v}}{\alpha \beta} + \frac{d_1 \delta^2 \tilde{u}_{\tilde{x} \tilde{x}}}{\alpha}\\
+\frac{\gamma}{\beta} \tilde{v}_{\tilde{t}} = -\frac{c \tilde{v}}{\beta} + \frac{d \tilde{u} \tilde{v}}{\alpha \beta} + \frac{d_2 \delta^2 \tilde{v}_{\tilde{x} \tilde{x}}}{\beta}
+\end{cases}
+\end{equation*}
+
+Возьмём коэффициенты из замены равными:
+\begin{equation*}
+\begin{aligned}
+&\alpha = \frac{1}{N},\\
+&\beta = \frac{b}{dN},\\
+&\gamma = dN,\\
+&\delta = \sqrt{\frac{dN}{d_2}}.
+\end{aligned}
+\end{equation*}
+Также положим 
+\begin{equation*}
+\begin{aligned}
+&\tilde{u} = u,\\
+&\tilde{v} = v,\\
+&\tilde{t} = t,\\
+&\tilde{x} = x,
+\end{aligned}
+\end{equation*}
+и получим следующую систему:
+\begin{equation*}
+\begin{cases}
+\dot u =\frac{a u^2}{dN(1 + u)} - \frac{gu}{dN} - uv + \frac{d_1}{d_2} u_{x x}\\
+\dot v = - \frac{cv}{dN} + uv + v_{xx}
+\end{cases}
+\end{equation*}
+
+Теперь введём обозначения:
+\begin{equation*}
+\begin{aligned}
+&A = \frac{a}{dN},\\
+&B = \frac{g}{dN},\\
+&C = \frac{c}{dN},\\
+&D = \frac{d_1}{d_2},
+\end{aligned}
+\end{equation*}
+и получим эквивалентную (\ref{main:syst}) систему, с которой и будем работать в дальнейшем:
+\begin{equation}
+\begin{cases}\label{trans:syst}	
+\dot u =A\frac{u^2}{1 + u} - Bu - uv + D u_{x x}\\
+\dot v = - Cv + uv + v_{xx}
+\end{cases}
+\end{equation}
+
+\section{Исследование нераспределённой системы}
+
+Нераспределённая система в данном случае выглядит следующим образом:
+\begin{equation}
+\begin{cases}\label{undist:syst}	
+\dot u =A\frac{u^2}{1 + u} - Bu - uv\\
+\dot v = - Cv + uv
+\end{cases}
+\end{equation}
+
+Рассмотрим все возможные неподвижные точки этой системы. Для этого найдём решения системы:
+\begin{equation*}
+\begin{cases}
+A\frac{u^2}{1 + u} - Bu - uv = 0\\
+ - Cv + uv = 0
+\end{cases}
+\end{equation*}
+Таким образом особыми точками будут:
+\begin{equation*}
+\begin{aligned}
+&O(0, 0);\\
+&K \left(\frac{B}{A-B}, 0\right), \quad \text{при } A > B;\\
+&L\left(C, \frac{AC}{1 + C} - B\right), \quad \text{при } \frac{AC}{1 + C} \geq B
+\end{aligned}
+\end{equation*}
+Условие для точки $L$ также можно записать в виде $\frac{B}{A - B} - C \leq 0$. Заметим, что при $A \leq B$ условие для существования точки $L$ также не выполняется ни при каких $C$.
+
+Рассмотрим Якобиан системы (\ref{undist:syst}):
+\begin{equation*}
+J(u, v) = \begin{pmatrix} A \frac{2u + u^2}{(1 + u)^2} - B - v& \;  -u &\\ v &\; u- C &\end{pmatrix}
+\end{equation*}
+Исследуем особые точки на устойчивость.
+\begin{enumerate}
+
+\item Рассмотрим $O(0, 0)$. Якобиан в точке $O$ равен:
+\begin{equation*}
+J(0, 0) = \begin{pmatrix}  - B &\;  0 &\\ 0 &\; - C &\end{pmatrix}
+\end{equation*}
+Собственные значения $\lambda_1 = -B$, $\lambda_2 = -C$. Таким образом получаем, что $O$~---~узел и при этом асимптотически устойчивый.
+
+\item Рассмотрим $K \left(\frac{B}{A-B}, 0\right)$. Якобиан в точке $O$ равен:
+\begin{equation*}
+J(\frac{B}{A-B}, 0) = \begin{pmatrix}  \frac{B (A -B)}{A} &\;  - \frac{B}{A - B} &\\ 0 &\; \frac{B}{A - B} - C &\end{pmatrix}
+\end{equation*}
+Собственные значения $\lambda_1 = \frac{B(A - B)}{A - B}$, $\lambda_2 = \frac{B}{A - B} - C$. При $\frac{B}{A - B} - C \neq 0$ получаем неустойчивую точку, в противном случае точки $K$ и $L$ совпадают, и мы получаем неустойчивый узел. При $\frac{B}{A - B} - C > 0$~---~это узел, при $\frac{B}{A - B} - C < 0$~---~это седло.
+
+\item Рассмотрим $L \left(C, \frac{AC}{1 + C} - B\right)$.  Якобиан в точке $L$ равен:
+\begin{equation*}
+J\left(\frac{B}{A-B}, 0\right) = \begin{pmatrix}  \frac{AC}{(1 + C)^2} &\;  -C &\\ \frac{AC}{1 + C} - B &\; 0 &\end{pmatrix}
+\end{equation*}
+Характеристический многочлен матрицы имеет следующий вид:
+\begin{equation*}
+\lambda^2 - \frac{AC}{(1 + C)^2} \lambda + C \left(\frac{AC}{1 + C} - B \right) = 0
+\end{equation*}
+Обозначим $M = \frac{AC}{(1 + C)^2}$, $N = C \left(\frac{AC}{1 + C} - B \right)$. Тогда имеем корни:
+\begin{equation*}
+\lambda_{1,2} = \frac{M \pm \sqrt{M^2 - 4 N}}{2}
+\end{equation*}
+При этом M>0, и тогда
+\begin{itemize}
+\item если $M^2 - 4 N < 0$, то это неустойчивый фокус;
+\item если $M^2 - 4 N = 0$, то это вырожденный узел;
+\item если $M^2 - 4 N > 0$, то это неустойчивый узел.
+\end{itemize}
+На практике получается, что не существует положительных параметров $A$, $B$ и $C$, удовлетворяющих первым двум условиям, однако неравенство получается слишком громоздким, а потому рассматриваться не будет.
+\end{enumerate}
+
+Соберём все полученные результаты в таблицу:
+
+\begin{tabular}{|c|c|c|c| }
+\hline
+\textbf{Условие} & \textbf{Точка $O$} & \textbf{Точка $K$} & \textbf{Точка $L$}  \\ \hline
+$A \leq B$ & Устойчивый узел & Отсутствует & Отсутствует\\ \hline
+$A > B$,  & Устойчивый узел & Неустойчивый узел & Отсутствует\\ 
+$\frac{B}{A - B} - C > 0$ & & & \\ \hline
+$A > B$,  & Устойчивый узел & Неизвестно & Неустойчивый узел\\ 
+$\frac{B}{A - B} - C = 0$ & &  (совпадает с $L$) &  (совпадает с $K$) \\ \hline
+$A > B$,  & Устойчивый узел & Неустойчивое седло & Неустойчивый узел\\ 
+$\frac{B}{A - B} - C < 0$ & & & \\ \hline
+\end{tabular}
+
+Также рассмотрим изоклины системы (\ref{undist:syst}). В данном случае они будут задаваться следующими уравнениями:
+\begin{equation*}
+\begin{aligned}
+&u = C;\\
+&v = A \frac{u}{1 + u} - B.
+\end{aligned}
+\end{equation*}
+При этом каждая изоклина разделяет фазовое пространство на части следующим образом:
+\begin{itemize}
+
+\item при $u < C$ $v$ убывает;
+
+\item при $u > C$ $v$ возрастает;
+
+\item при $v > A \frac{u}{1 + u} - B$ $u$ убывает;
+
+\item при $v < A \frac{u}{1 + u} - B$ $u$ возрастает.
+
+\end{itemize}
+На картинках изоклины обозначены фиолетовым цветом
+
+\clearpage
+
+\section{Иллюстрации}
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_1}
+\caption{Фазовый портрет системы при $A=1$, $B=2$ и $C = 1$, соответствует 1 случаю из таблицы}
+\label{fig_1}
+\end{center}
+\end{figure}
+
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_2}
+\caption{Фазовый портрет системы при $A=3$, $B=2$ и $C = 1$, соответствует 2 случаю из таблицы}
+\label{fig_2}
+\end{center}
+\end{figure}
+
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_3}
+\caption{Фазовый портрет системы при $A=4$, $B=3$ и $C = 3$, соответствует 3 случаю из таблицы}
+\label{fig_3}
+\end{center}
+\end{figure}
+
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_4}
+\caption{Фазовый портрет системы при $A=3$, $B=1$ и $C = 3$, соответствует 4 случаю из таблицы}
+\label{fig_4}
+\end{center}
+\end{figure}
+
+\clearpage
+
+\section{Поиск волновых решений}
+
+Найдём решения системы (\ref{trans:syst}) в следущем виде:
+\begin{equation*}
+\begin{aligned}
+&u(t, x) = u(x + ct),\\
+&v(t, x) = v(x + ct),
+\end{aligned}
+\end{equation*}
+где $c > 0$~---~новый параметр. И обозначив $x + ct$ как новую переменную $z$, получим следующую систему:
+\begin{equation*}
+\begin{cases}
+ c u'(z) = A\frac{u(z)^2}{1 + u(z)} - Bu(z) - u(z)v(z) + D u''(z)\\
+c v'(z) = - Cv(z) + u(z)v(z) + v''(z)
+\end{cases}
+\end{equation*}
+
+Рассмотрим частный случай, когда $D=0$. Он соответствует ситуации, когда все жертвы сосредоточены в одном месте, а хищники распределены повсюду. Также введём дополнительную  функцию $w(z) = v'(z)$, тогда систему можно переписать следующим образом:
+\begin{equation}
+\begin{cases}\label{dist:syst}
+ u' = \frac{1}{c} \left( A\frac{u^2}{1 + u} - Bu - uv \right) \\
+v' = w \\
+w' = C v + cw - uv
+\end{cases}
+\end{equation}
+Исследуем эту систему. Положения равновесия будут следующими:
+\begin{equation*}
+\begin{aligned}
+&O(0, 0, 0),\\
+&N\left(\frac{B}{A-B}, 0, 0\right), \quad \text{при } A>B,\\
+&M \left(C, \frac{AC}{1 + C} - B, 0\right), \quad \text{при } \frac{AC}{1 + C} - B \geq 0.
+\end{aligned}
+\end{equation*}
+Условие для точки $M$ также можно записать в виде $\frac{B}{A - B} - C \leq 0$. Также существование точки $M$ невозможно без существования точки $N$.
+
+Рассмотрим Якобиан системы (\ref{dist:syst}):
+\begin{equation*}
+J(u, v, w) = \begin{pmatrix} - \frac{1}{c} \left(A \left(\frac{1}{(u+1)^2} - 1 \right) + B + v \right)& \;  -u & \; 0 &\\ 0 &\; 0 & \; 1 & \\ -v & \; C - u & \; c &\end{pmatrix}
+\end{equation*}
+
+Исследуем особые точки:
+\begin{enumerate}
+
+\item Рассмотрим точку $O(0, 0, 0)$. Якобиан в этой точке равен:
+\begin{equation*}
+J(u, v, w) = \begin{pmatrix} - \frac{B}{c} & \;  0 & \; 0 &\\ 0 &\; 0 & \; 1 & \\ 0 & \; C & \; c &\end{pmatrix}
+\end{equation*}
+Собственные значения $\lambda_1 = -\frac{B}{c}$, $\lambda_2 = \frac{1}{2} \left( c \pm \sqrt{4 C + c^2} \right)$. Эта точка является неустойчивой.
+
+\item Рассмотрим точку $M \left(C, \frac{AC}{1 + C} - B, 0\right)$. Якобиан в этой точке равен:
+\begin{equation*}
+J\left(C, \frac{AC}{1 + C} - B, 0\right) = \begin{pmatrix} - \frac{AC}{(C+1)^2} & \;  -C & \; 0 &\\ 0 &\; 0 & \; 1 & \\ -\frac{AC}{1 + C} + B & \;0 & \; c &\end{pmatrix}
+\end{equation*}
+Также рассмотрим характеристический многочлен этой матрицы:
+\begin{equation*}
+f(\lambda) = \lambda^3 + \left(\frac{AC}{(1 + C)^2} - c\right) \lambda^2 - \frac{ACc}{(1+C)^2}\lambda - \frac{A C^2}{1+C} + BC
+\end{equation*}
+Найти собственные значения не представляется возможным, однако можно сделать некоторые выводы о них, рассмотрев характеристический многочлен. Для этого найдём его производную:
+\begin{equation*}
+f'(\lambda) = 3 \lambda^2 + 2 \left(\frac{AC}{(C+1)^2} - c\right)\lambda - \frac{ACc}{(C+1)^2}.
+\end{equation*}
+Её корни имеют следующий вид:
+\begin{equation*}
+\lambda_{1,2} = \frac{1}{6} \left(\pm\sqrt{\left(\frac{2AC}{(C+1)^2} - 2c\right)^2 + \frac{12 ACc}{(C+1)^2}} - \frac{2AC}{(C+1)^2} + 2c\right),
+\end{equation*}
+при этом один из этих корней отрицательный, а один~---~положительный. Подставим $0$ в $f'(\lambda)$, и получим отрицательное число, то есть в нуле она убывает, при этом если подставить $0$ в $f(\lambda)$, то мы получим снова отрицательное число (из условия существования точки). Тогда в силу того, что функция будет иметь вид как на рис. \ref{fig_5}, можно однозначно сказать, что хотя бы один из корней будет вещественным и положительным. А значит, точка будет неустойчивой. 
+
+\item Рассмотрим точку $N\left(\frac{B}{A-B}, 0, 0\right)$. Якобиан в этой точке равен:
+\begin{equation*}
+J\left(\frac{B}{A-B}, 0, 0\right) = \begin{pmatrix} \frac{B(A-B)}{Ac} & \;  -\frac{B}{A-B} & \; 0 &\\ 0 &\; 0 & \; 1 & \\ 0 & \; C -\frac{B}{A-B}& \; c &\end{pmatrix}
+\end{equation*}
+Собственные значения $\lambda_1=\frac{B(A-B)}{Ac}$, $\lambda_{2,3} = \frac{\pm \sqrt{A-B} \sqrt{4AC + Ac^2 - 4BC - Bc^2 - 4B} + Ac - Bc}{2(A-B)}$. $\lambda_1>0$ при выполнении всех условий, а потому точка будет неустойчивой. Также $\lambda_2$ (с положительным корнем) также будет больше нуля при параметрах, удовлетворяющих условиям.
+
+\end{enumerate}
+
+Таким образом все три точки будут неустойчивыми. Волновых решений для системы существовать не будет, потому как при любых значениях параметров один из видов вымирает, а популяция другого устремляется в бесконечность. Изоклины для данной системы будут следующими:
+\begin{equation*}
+\begin{aligned}
+&u = C + cw;\\
+&v = \frac{1}{c} \left(\frac{Au}{1+u} - B\right);\\
+&w = 0.
+\end{aligned}
+\end{equation*}
+
+%\clearpage
+\section{Иллюстрации}
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_5}
+\caption{Пример вида функции $f(\lambda)$.}
+\label{fig_5}
+\end{center}
+\end{figure}
+
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_6}
+\caption{Фазовый портрет системы при $A=1$, $B=4$, $C = 1$, $c=4$, только точка $O$}
+\label{fig_6}
+\end{center}
+\end{figure}
+
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_7}
+\caption{Фазовый портрет системы при $A=5$, $B=3$, $C = 1$, $c=4$, точки $O$ и $N$}
+\label{fig_7}
+\end{center}
+\end{figure}
+
+ \begin{figure}[h!]
+\begin{center}
+%\includegraphics[width=0.7\linewidth]{fig_8}
+\caption{Фазовый портрет системы при $A=9$, $B=1$, $C = 1$, $c=4$, точки $O$, $M$ и $N$}
+\label{fig_8}
+\end{center}
+\end{figure}
+\end{document}
